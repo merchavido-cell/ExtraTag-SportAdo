@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>SportAdo - Home</title>
+    <style>
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+        html, body {
+            margin: 0; padding: 0; width: 100%; min-height: 100vh;
+            font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, Helvetica, Arial, sans-serif;
+            background: #0f172a;
+            background-image:
+                radial-gradient(circle at 0% 0%, rgba(79, 70, 229, 0.18) 0%, transparent 45%),
+                radial-gradient(circle at 100% 100%, rgba(56, 189, 248, 0.12) 0%, transparent 45%);
+            background-attachment: fixed;
+            color: #f8fafc;
+            overflow-x: hidden;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        .app {
+            min-height: 100vh; display: flex; flex-direction: column;
+            padding: 18px 18px 0 18px;
+            padding-top: calc(18px + env(safe-area-inset-top, 0px));
+        }
+
+        .top-bar {
+            display: flex; justify-content: space-between; align-items: center;
+            gap: 12px; margin-bottom: 32px; min-height: 60px;
+        }
+
+        .profile-block { display: flex; align-items: center; gap: 12px; min-width: 0; flex: 1; }
+
+        .avatar {
+            width: 46px; height: 46px; border-radius: 50%;
+            background: #1e293b; border: 2px solid #38bdf8;
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer; overflow: hidden; flex-shrink: 0;
+            box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.08);
+            transition: transform 0.15s ease;
+        }
+        .avatar:active { transform: scale(0.94); }
+        .avatar img { width: 100%; height: 100%; object-fit: cover; }
+        .avatar-letter {
+            font-weight: 700; font-size: 19px; line-height: 1;
+            display: flex; align-items: center; justify-content: center;
+            width: 100%; height: 100%; user-select: none;
+        }
+
+        .user-info { display: flex; flex-direction: column; min-width: 0; }
+        .user-greeting {
+            font-size: 11px; color: #64748b; font-weight: 500;
+            letter-spacing: 0.3px; text-transform: uppercase; margin-bottom: 2px;
+        }
+        .user-name {
+            font-size: 14px; color: #e2e8f0; font-weight: 600;
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 140px;
+        }
+
+        .logout-btn {
+            background: transparent; color: #94a3b8;
+            border: 1px solid #334155; padding: 7px 14px; border-radius: 9px;
+            font-size: 12px; font-weight: 600; cursor: pointer;
+            transition: all 0.15s ease; flex-shrink: 0;
+            font-family: inherit; letter-spacing: 0.3px;
+        }
+        .logout-btn:active {
+            background: rgba(239, 68, 68, 0.12); color: #f87171;
+            border-color: rgba(239, 68, 68, 0.4);
+        }
+
+        .logo-block { display: flex; align-items: center; justify-content: flex-end; flex-shrink: 0; }
+        .logo-block img {
+            height: 56px; width: auto; object-fit: contain;
+            user-select: none; -webkit-user-drag: none;
+        }
+
+        .main {
+            flex: 1; width: 100%; max-width: 540px; margin: 0 auto;
+            display: flex; flex-direction: column; gap: 20px; padding-bottom: 20px;
+        }
+
+        .hero { margin-bottom: 4px; }
+        .hero h1 {
+            font-size: 26px; margin: 0 0 6px 0; font-weight: 700;
+            letter-spacing: -0.5px; color: #f8fafc;
+        }
+        .hero h1 span { color: #38bdf8; }
+        .hero p { color: #94a3b8; font-size: 14px; margin: 0; line-height: 1.5; }
+
+        .section-label {
+            font-size: 11px; color: #64748b; font-weight: 700;
+            letter-spacing: 1.4px; text-transform: uppercase;
+            padding: 4px 2px; margin-top: 6px;
+        }
+
+        .sports-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+        .sport-tile {
+            position: relative;
+            display: flex; flex-direction: column;
+            align-items: flex-start; justify-content: space-between;
+            padding: 18px 16px; min-height: 108px;
+            border-radius: 16px; border: 1px solid #1e293b;
+            background: linear-gradient(160deg, #1e293b 0%, #172033 100%);
+            color: #f1f5f9; cursor: pointer; font-family: inherit;
+            text-align: left; overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+            transition: transform 0.15s ease, border-color 0.15s ease;
+        }
+        .sport-tile::after {
+            content: ''; position: absolute; top: 0; left: 0; right: 0;
+            height: 2px; background: linear-gradient(90deg, #38bdf8, #818cf8);
+            opacity: 0; transition: opacity 0.15s ease;
+        }
+        .sport-tile:active {
+            transform: scale(0.97); border-color: #334155;
+            background: linear-gradient(160deg, #223049 0%, #1a2740 100%);
+        }
+        .sport-tile:active::after { opacity: 1; }
+
+        .sport-tile-top {
+            display: flex; align-items: center; justify-content: space-between;
+            width: 100%; margin-bottom: 12px;
+        }
+
+        .sport-tile-name {
+            font-size: 15px; font-weight: 600; letter-spacing: 0.2px; color: #f8fafc;
+        }
+        .sport-tile-arrow { font-size: 14px; color: #64748b; font-weight: 400; }
+        .sport-tile-meta {
+            font-size: 11px; color: #64748b; font-weight: 500;
+            letter-spacing: 0.4px; text-transform: uppercase;
+        }
+        .sport-tile-icon { width: 26px; height: 26px; display: block; opacity: 0.9; }
+
+        .bottom-nav {
+            display: flex; gap: 8px; background: #131c31;
+            border: 1px solid #1e293b; border-radius: 16px;
+            padding: 6px; margin-top: 8px;
+        }
+        .nav-btn {
+            flex: 1; background: transparent; border: none;
+            color: #94a3b8; font-size: 13px; font-weight: 600;
+            padding: 12px 8px; border-radius: 11px; cursor: pointer;
+            font-family: inherit; letter-spacing: 0.3px;
+            display: flex; align-items: center; justify-content: center; gap: 6px;
+            transition: all 0.15s ease;
+        }
+        .nav-btn:active { background: rgba(56, 189, 248, 0.1); color: #38bdf8; }
+        .nav-btn.active { background: #1e293b; color: #e2e8f0; }
+
+        .safe-spacer { height: env(safe-area-inset-bottom, 12px); min-height: 12px; }
+    </style>
+</head>
+<body>
+
+    <div class="app">
+        <header class="top-bar">
+            <div class="profile-block">
+                <div class="avatar" id="userAvatar" title="Profile" onclick="goToProfile()">
+                    <span class="avatar-letter" id="avatarLetter">–</span>
+                </div>
+                <div class="user-info">
+                    <span class="user-greeting">Signed in</span>
+                    <span class="user-name" id="displayUsername">Loading...</span>
+                </div>
+                <button class="logout-btn" onclick="logout()">Logout</button>
+            </div>
+
+            <div class="logo-block">
+                <img src="Pic-SportAdo.png" alt="SportAdo">
+            </div>
+        </header>
+
+        <main class="main">
+            <div class="hero">
+                <h1>Hi, <span id="welcomeName">Athlete</span>.</h1>
+                <p>Pick an activity to start tracking. GPS, maps and stats are ready when you are.</p>
+            </div>
+
+            <div class="section-label">Activities</div>
+
+            <div class="sports-grid">
+                <button class="sport-tile" onclick="startSport('run')">
+                    <div class="sport-tile-top">
+                        <svg class="sport-tile-icon" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="15" cy="4" r="1.8"/>
+                            <path d="M10 9l3.5 1.5 1.5 4 3 2"/>
+                            <path d="M10 9l-2.5 3L5 13"/>
+                            <path d="M13.5 14.5L11 19l-3 1"/>
+                        </svg>
+                        <span class="sport-tile-arrow">→</span>
+                    </div>
+                    <div>
+                        <div class="sport-tile-name">Run</div>
+                        <div class="sport-tile-meta">Track pace</div>
+                    </div>
+                </button>
+
+                <button class="sport-tile" onclick="startSport('bike')">
+                    <div class="sport-tile-top">
+                        <svg class="sport-tile-icon" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="6" cy="17" r="3"/>
+                            <circle cx="18" cy="17" r="3"/>
+                            <path d="M6 17l4-9h6l2 9"/>
+                            <path d="M10 8l1 3h4"/>
+                        </svg>
+                        <span class="sport-tile-arrow">→</span>
+                    </div>
+                    <div>
+                        <div class="sport-tile-name">Bike</div>
+                        <div class="sport-tile-meta">Track speed</div>
+                    </div>
+                </button>
+
+                <button class="sport-tile" onclick="startSport('walk')">
+                    <div class="sport-tile-top">
+                        <svg class="sport-tile-icon" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="13" cy="4" r="1.8"/>
+                            <path d="M13 8l-2 4 3 2 1 5"/>
+                            <path d="M11 12L8 15l1 5"/>
+                            <path d="M14 14l3 1"/>
+                        </svg>
+                        <span class="sport-tile-arrow">→</span>
+                    </div>
+                    <div>
+                        <div class="sport-tile-name">Walk</div>
+                        <div class="sport-tile-meta">Track steps</div>
+                    </div>
+                </button>
+
+                <button class="sport-tile" onclick="startSport('duathlon')">
+                    <div class="sport-tile-top">
+                        <svg class="sport-tile-icon" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="6" cy="17" r="2.5"/>
+                            <circle cx="18" cy="17" r="2.5"/>
+                            <path d="M8 17l3-6h4l2 6"/>
+                            <circle cx="12" cy="5" r="1.6"/>
+                        </svg>
+                        <span class="sport-tile-arrow">→</span>
+                    </div>
+                    <div>
+                        <div class="sport-tile-name">Duathlon</div>
+                        <div class="sport-tile-meta">Run + bike</div>
+                    </div>
+                </button>
+
+                <button class="sport-tile" onclick="startSport('navigate')">
+                    <div class="sport-tile-top">
+                        <svg class="sport-tile-icon" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="9"/>
+                            <path d="M15 9l-2 6-4 2 2-6z"/>
+                        </svg>
+                        <span class="sport-tile-arrow">→</span>
+                    </div>
+                    <div>
+                        <div class="sport-tile-name">Navigate</div>
+                        <div class="sport-tile-meta">Live map</div>
+                    </div>
+                </button>
+
+                <button class="sport-tile" onclick="startSport('strength')">
+                    <div class="sport-tile-top">
+                        <svg class="sport-tile-icon" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M3 10v4"/>
+                            <path d="M21 10v4"/>
+                            <path d="M6 8v8"/>
+                            <path d="M18 8v8"/>
+                            <rect x="8" y="10" width="8" height="4" rx="1"/>
+                        </svg>
+                        <span class="sport-tile-arrow">→</span>
+                    </div>
+                    <div>
+                        <div class="sport-tile-name">Strength</div>
+                        <div class="sport-tile-meta">Track sets</div>
+                    </div>
+                </button>
+            </div>
+
+            <nav class="bottom-nav">
+                <button class="nav-btn" onclick="goToHistory()">History</button>
+                <button class="nav-btn" onclick="goToProfile()">Profile</button>
+            </nav>
+
+            <div class="safe-spacer"></div>
+        </main>
+    </div>
+
+    <script src="js/sportado-bridge.js"></script>
+    <script>
+    function applyProfileData(profile) {
+        if (!profile) return;
+        if (typeof profile === 'string') {
+            try { profile = JSON.parse(profile); } catch (e) { profile = {}; }
+        }
+
+        const activeName = profile.firstName || profile.firstname || profile.custom_username || "Athlete";
+        document.getElementById('displayUsername').textContent = activeName;
+        document.getElementById('welcomeName').textContent = activeName;
+
+        const avatarContainer = document.getElementById('userAvatar');
+
+        if (profile.avatar_url) {
+            avatarContainer.style.background = "#1e293b";
+            avatarContainer.innerHTML = `<img src="${profile.avatar_url}" alt="${activeName}">`;
+        } else {
+            const firstLetter = activeName.charAt(0).toUpperCase();
+            const bgColor = profile.avatarColor || '#38bdf8';
+            const textColor = profile.avatarTextColor || '#0f172a';
+
+            avatarContainer.style.backgroundColor = bgColor;
+            avatarContainer.style.borderColor = bgColor;
+            avatarContainer.innerHTML = `<span class="avatar-letter" style="color:${textColor};">${firstLetter}</span>`;
+        }
+    }
+
+    async function loadActiveProfile() {
+        try {
+            let raw = await window.pywebview.api.get_logged_in_user();
+            let res = typeof raw === 'string' ? JSON.parse(raw || "{}") : raw;
+            if (!res || !res.success || !res.profile) {
+                window.pywebview.api.navigate_to("index.html", "SportAdo - Login");
+                return;
+            }
+            applyProfileData(res.profile);
+        } catch (error) {
+            console.error("Profile load error:", error);
+            document.getElementById('displayUsername').textContent = "User";
+            document.getElementById('welcomeName').textContent = "Athlete";
+        }
+    }
+
+    async function logout() {
+        try { await window.pywebview.api.logout(); }
+        catch (e) { console.error("Logout error:", e); }
+        finally {
+            sessionStorage.clear();
+            window.pywebview.api.navigate_to("index.html", "SportAdo - Login");
+        }
+    }
+
+    function goToProfile() {
+        window.pywebview.api.navigate_to("profiles.html", "SportAdo - Profiles");
+    }
+
+    function goToHistory() {
+        window.pywebview.api.navigate_to("history.html", "SportAdo - History");
+    }
+
+    function startSport(sport) {
+        sessionStorage.setItem('sportado_sport', sport);
+        window.pywebview.api.navigate_to("activity.html", "SportAdo - Activity");
+    }
+
+    if (window.pywebview && window.pywebview.api) {
+        loadActiveProfile();
+    } else {
+        window.addEventListener('pywebviewready', loadActiveProfile);
+    }
+    </script>
+
+</body>
+</html>

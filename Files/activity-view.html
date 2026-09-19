@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>SportAdo - View Activity</title>
+    <style>
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        html, body {
+            margin: 0; padding: 0; width: 100%; height: 100%;
+            background: #0f172a; color: #f8fafc; overflow: hidden;
+            font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, Helvetica, Arial, sans-serif;
+            -webkit-font-smoothing: antialiased;
+        }
+        .activity-view-app {
+            display: flex; flex-direction: column;
+            width: 100%; height: 100vh; height: 100dvh;
+            padding-top: env(safe-area-inset-top, 0px);
+        }
+        .top-bar {
+            display: flex; align-items: center;
+            padding: 12px 16px; background: #131c31;
+            border-bottom: 1px solid #1e293b; flex-shrink: 0;
+            min-height: 56px;
+        }
+        .back-btn {
+            background: transparent; border: none; color: #94a3b8;
+            font-size: 20px; cursor: pointer; padding: 6px 12px;
+            border-radius: 8px; font-family: inherit;
+        }
+        .back-btn:active { background: #1e293b; color: #f8fafc; }
+        .title {
+            flex: 1; text-align: center; font-size: 14px; font-weight: 700;
+            color: #f8fafc; white-space: nowrap; overflow: hidden;
+            text-overflow: ellipsis; padding: 0 12px;
+            letter-spacing: 0.3px;
+        }
+        .spacer { width: 32px; flex-shrink: 0; }
+        iframe {
+            flex: 1; width: 100%; border: none; background: #ffffff;
+        }
+        .empty-state {
+            flex: 1; display: flex; flex-direction: column;
+            align-items: center; justify-content: center;
+            padding: 40px; text-align: center; color: #64748b;
+        }
+        .empty-icon { font-size: 48px; opacity: 0.3; margin-bottom: 16px; }
+    </style>
+</head>
+<body>
+
+<div class="activity-view-app">
+    <header class="top-bar">
+        <button class="back-btn" onclick="goBack()">←</button>
+        <span class="title" id="viewTitle">Activity</span>
+        <span class="spacer"></span>
+    </header>
+    <iframe id="viewFrame"></iframe>
+</div>
+
+<script src="js/sportado-bridge.js"></script>
+<script>
+function goBack() {
+    sessionStorage.removeItem('sportado_view_html');
+    sessionStorage.removeItem('sportado_view_name');
+    window.pywebview.api.navigate_to('history.html', 'SportAdo - History');
+}
+
+(function () {
+    const html = sessionStorage.getItem('sportado_view_html') || '';
+    const name = sessionStorage.getItem('sportado_view_name') || 'Activity';
+
+    document.getElementById('viewTitle').textContent = name;
+
+    if (html) {
+        try {
+            const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            document.getElementById('viewFrame').src = url;
+        } catch (e) {
+            document.getElementById('viewFrame').srcdoc =
+                '<body style="background:#0f172a;color:#fff;font-family:Arial;padding:20px;text-align:center;">' +
+                'Error loading activity: ' + e.message + '</body>';
+        }
+    } else {
+        document.getElementById('viewFrame').srcdoc =
+            '<body style="background:#0f172a;color:#fff;font-family:Arial;padding:20px;text-align:center;">' +
+            '<h2>No activity to display</h2>' +
+            '<p style="color:#64748b;">The activity data was not found.</p></body>';
+    }
+})();
+</script>
+
+</body>
+</html>

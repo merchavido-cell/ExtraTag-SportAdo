@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Account Login</title>
+    <style>
+        body {
+            font-family: Arial, Helvetica, sans-serif;
+            background: #0f172a;
+            color: white;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding-top: 50px;
+            margin: 0;
+        }
+
+        #words {
+            font-size: 35px;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+
+        .login-box {
+            width: 320px;
+            background-color: #1e293b;
+            border-bottom: 4px solid #38bdf8;
+            border-left: 2px solid #38bdf8;
+            border-radius: 6px;
+            padding: 25px 20px;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+        }
+
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        label {
+            font-size: 14px;
+            color: #94a3b8;
+            font-weight: bold;
+        }
+
+        input {
+            width: 100%;
+            height: 42px;
+            background-color: #0f172a;
+            border: 1px solid #334155;
+            border-radius: 4px;
+            color: white;
+            padding: 0 12px;
+            box-sizing: border-box;
+            font-size: 15px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        input:focus {
+            border-color: #38bdf8;
+        }
+
+        .btn-submit {
+            width: 100%;
+            height: 45px;
+            background-color: #38bdf8;
+            color: #0f172a;
+            border: none;
+            border-radius: 4px;
+            font-weight: bold;
+            font-size: 16px;
+            cursor: pointer;
+            margin-top: 10px;
+            transition: background 0.2s, transform 0.2s;
+        }
+
+        .btn-submit:hover {
+            background-color: #7dd3fc;
+            transform: translateY(-2px);
+        }
+
+        .btn-submit:disabled {
+            opacity: 0.6;
+            cursor: default;
+            transform: none;
+        }
+
+        .error-message {
+            color: #f87171;
+            font-size: 14px;
+            text-align: center;
+            display: none;
+        }
+
+        .back-btn {
+            color: #94a3b8;
+            font-size: 14px;
+            margin-top: 20px;
+            cursor: pointer;
+            text-decoration: underline;
+            transition: color 0.2s;
+        }
+
+        .back-btn:hover {
+            color: #38bdf8;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div id="words">Sign In</div>
+
+    <div class="login-box">
+        <div id="errorMsg" class="error-message">Invalid email or password.</div>
+
+        <div class="input-group">
+            <label for="email">Email Address</label>
+            <input type="email" id="email" placeholder="Enter your email" required>
+        </div>
+
+        <div class="input-group">
+            <label for="password">Password</label>
+            <input type="password" id="password" placeholder="Enter password" required>
+        </div>
+
+        <button type="button" class="btn-submit" id="submitBtn">Login</button>
+    </div>
+
+    <div class="back-btn" id="backBtn" onclick="window.location.href='profiles.html'">
+        Back to Profiles
+    </div>
+
+   <script>
+    const errorMsg = document.getElementById("errorMsg");
+    const submitBtn = document.getElementById("submitBtn");
+
+    let _bridgeBusy = false;
+    const _bridgeQueue = [];
+
+    function _sendNext() {
+        if (_bridgeBusy || _bridgeQueue.length === 0) return;
+        _bridgeBusy = true;
+        const payload = _bridgeQueue.shift();
+        document.title = "PY_BRIDGE:" + payload;
+    }
+
+    function callPython(functionName, args = []) {
+        return new Promise((resolve, reject) => {
+            const requestId = 'req_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5);
+
+            window[requestId] = function(response) {
+                delete window[requestId];
+                clearTimeout(timeout);
+                _bridgeBusy = false;
+                _sendNext();
+                resolve(response);
+            };
+
+            const timeout = setTimeout(() => {
+                if (window[requestId]) {
+                    delete window[requestId];
+                    _bridgeBusy = false;
+                    _sendNext();
+                    reject(new Error("Python Bridge Timeout"));
+                }
+            }, 10000);
+
+            try {
+                const payload = JSON.stringify({
+                    action: functionName,
+                    args: args,
+                    callback: requestId
+                });
+
+                _bridgeQueue.push(payload);
+                _sendNext();
+
+            } catch (err) {
+                clearTimeout(timeout);
+                _bridgeBusy = false;
+                reject(err);
+            }
+        });
+    }
+
+    submitBtn.onclick = async function () {
+        errorMsg.style.display = "none";
+
+        const email = document.getElementById("email").value.trim();
+        const password = document.getElementById("password").value;
+
+        if (!email || !password) {
+            errorMsg.textContent = "Please fill in all fields.";
+            errorMsg.style.display = "block";
+            return;
+        }
+
+        submitBtn.disabled = true;
+        submitBtn.textContent = "Checking...";
+
+        try {
+            const result = await callPython("login_from_github", [email, password]);
+
+            submitBtn.disabled = false;
+            submitBtn.textContent = "Login";
+
+            if (result && result.success === true) {
+                window.location.href = "home.html";
+                return;
+            }
+
+            errorMsg.textContent = (result && result.error) ? result.error : "Invalid email or password.";
+            errorMsg.style.display = "block";
+        } catch (err) {
+            submitBtn.disabled = false;
+            submitBtn.textContent = "Login";
+            errorMsg.textContent = "Error connecting to app backend.";
+            errorMsg.style.display = "block";
+        }
+    };
+
+    document.getElementById("password").addEventListener("keydown", function (event) {
+        if (event.key === "Enter") {
+            submitBtn.click();
+        }
+    });
+</script>
+
+</body>
+
+</html>

@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SportAdo Loading...</title>
+
+    <style>
+        body {
+            font-family: Arial, Helvetica, sans-serif;
+            background: #0f172a;
+            color: white;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            overflow: hidden;
+        }
+
+        .splash-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            animation: fadeIn 0.8s ease-in-out;
+        }
+
+        .splash-image {
+            max-width: 180px;
+            max-height: 180px;
+            object-fit: contain;
+            filter: drop-shadow(0 0 15px rgba(56, 189, 248, 0.3));
+        }
+
+        .loader {
+            margin-top: 30px;
+            width: 40px;
+            height: 40px;
+            border: 4px solid #1e293b;
+            border-top: 4px solid #38bdf8;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: scale(0.95);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="splash-container">
+    <img src="Pic-SportAdo.png" alt="SportAdo App" class="splash-image">
+    <div class="loader"></div>
+</div>
+
+<script>
+    // מנגנון ה-Bridge עבור פייתון (זהה למה שמוגדר ב-home.html שלך)
+    let _bridgeBusy = false;
+    const _bridgeQueue = [];
+
+    function _sendNext() {
+        if (_bridgeBusy || _bridgeQueue.length === 0) return;
+        _bridgeBusy = true;
+        const payload = _bridgeQueue.shift();
+        document.title = "PY_BRIDGE:" + payload;
+    }
+
+    function callPython(functionName, args = []) {
+        return new Promise((resolve, reject) => {
+            const requestId = 'req_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5);
+
+            window[requestId] = function(response) {
+                delete window[requestId];
+                _bridgeBusy = false;
+                _sendNext();
+                resolve(response);
+            };
+
+            setTimeout(() => {
+                if (window[requestId]) {
+                    delete window[requestId];
+                    _bridgeBusy = false;
+                    _sendNext();
+                    reject(new Error("Python Bridge Timeout"));
+                }
+            }, 8000);
+
+            const payload = JSON.stringify({
+                action: functionName,
+                args: args,
+                callback: requestId
+            });
+
+            _bridgeQueue.push(payload);
+            _sendNext();
+        });
+    }
+
+    async function checkProfileAndNavigate() {
+        let isLoggedIn = false;
+        let targetUrl = "profiles.html"; // ברירת מחדל: דף התחברות
+
+        try {
+            // בדיקה מול פייתון האם יש משתמש שמוגדר כ-is_logged_in = true
+            let res = await callPython("get_logged_in_user");
+            if (res && res.success && res.profile) {
+                isLoggedIn = true;
+            }
+        } catch (err) {
+            console.error("Error checking login status:", err);
+        }
+
+        // קביעת היעד בהתאם למצב ההתחברות
+        if (isLoggedIn) {
+            targetUrl = "home.html"; 
+        } else {
+            targetUrl = "profiles.html"; // או login.html בהתאם לשם קובץ ההתחברות אצלך
+        }
+
+        // ניווט בפועל
+        if (window.AndroidBridge && window.AndroidBridge.navigate) {
+            window.AndroidBridge.navigate(targetUrl);
+        } else if (window.pywebview && window.pywebview.api && window.pywebview.api.navigate_to) {
+            window.pywebview.api.navigate_to(targetUrl, "SportAdo");
+        } else {
+            // מעבר דפדפן רגיל - בתוך אותה תיקייה
+            window.location.href = targetUrl;
+        }
+    }
+
+    window.onload = function () {
+        // מתמתיקה של השהייה קצרה (3 שניות פופינג לפעמים או מעבר מהיר) ואז בדיקה וניווט
+        setTimeout(checkProfileAndNavigate, 2000);
+    };
+</script>
+</body>
+</html>

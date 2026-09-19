@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Select Profile</title>
+
+    <style>
+        body {
+            font-family: Arial, Helvetica, sans-serif;
+            background: #0f172a;
+            color: white;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding-top: 50px;
+            margin: 0;
+        }
+
+        #words {
+            font-size: 35px;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+
+        #container {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .profile-box {
+            width: 320px;
+            min-height: 55px;
+            background-color: #1e293b;
+            border-bottom: 4px solid #38bdf8;
+            border-left: 2px solid #38bdf8;
+            border-radius: 6px;
+            margin: 10px 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 18px;
+            transition: background 0.2s, transform 0.2s;
+            padding: 10px;
+            box-sizing: border-box;
+        }
+
+        .profile-box:hover {
+            background-color: #334155;
+            transform: translateY(-2px);
+        }
+
+        .profile-email {
+            font-size: 13px;
+            color: #94a3b8;
+            font-weight: normal;
+            margin-top: 4px;
+        }
+
+        .add-account-btn {
+            width: 320px;
+            height: 50px;
+            background-color: transparent;
+            border: 2px dashed #38bdf8;
+            color: #38bdf8;
+            border-radius: 6px;
+            margin-top: 25px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 16px;
+            transition: background 0.2s, color 0.2s;
+        }
+
+        .add-account-btn:hover {
+            background-color: #38bdf8;
+            color: #0f172a;
+        }
+
+        .message {
+            color: #94a3b8;
+            font-size: 18px;
+        }
+
+        #debugBox {
+            width: 90%;
+            max-width: 500px;
+            margin-top: 20px;
+            padding: 10px;
+            background: #1e293b;
+            border: 1px solid #ef4444;
+            border-radius: 6px;
+            color: #fca5a5;
+            font-size: 13px;
+            white-space: pre-wrap;
+            word-break: break-all;
+            display: none;
+        }
+    </style>
+</head>
+
+<body>
+
+<div id="words">Choose your profile</div>
+
+<div id="container"></div>
+
+<div class="add-account-btn" id="loginRedirectBtn">+ Login to Account</div>
+
+<div id="debugBox"></div>
+
+<script>
+let container = document.getElementById("container");
+let isLoading = false;
+
+// מציג שגיאה/מידע ישירות על המסך - כי console.log לא נראה במכשיר
+function showDebug(msg) {
+    let box = document.getElementById("debugBox");
+    box.style.display = "block";
+    box.textContent = typeof msg === "string" ? msg : JSON.stringify(msg, null, 2);
+}
+
+// פונקציה מאוחדת לתקשורת עם ה-Python (אנדרואיד ודסקטופ)
+function callPythonBackend(action, args = []) {
+    return new Promise((resolve, reject) => {
+        if (window.pywebview && window.pywebview.api) {
+            // סביבת דסקטופ
+            window.pywebview.api[action](...args).then(resolve).catch(reject);
+        } else {
+            // סביבת אנדרואיד (Bridge)
+            let callbackName = "cb_" + Math.random().toString(36).substring(2, 9);
+
+            // בלי טיים-אאוט, אם פייתון לא עונה בכלל (למשל payload ששובר את ה-
+            // title bridge) ה-await נשאר תקוע לנצח בלי שום הודעה - בדיוק מה שקרה.
+            let timedOut = false;
+            let timeoutId = setTimeout(() => {
+                timedOut = true;
+                delete window[callbackName];
+                reject(new Error("Bridge timeout for " + action + " - Python never responded (payload too large?)"));
+            }, 8000);
+
+            window[callbackName] = function(response) {
+                if (timedOut) return;
+                clearTimeout(timeoutId);
+                delete window[callbackName];
+                resolve(response);
+            };
+            let payload = JSON.stringify({ action: action, args: args, callback: callbackName });
+            document.title = "PY_BRIDGE:" + payload;
+        }
+    });
+}
+
+async function loadProfiles() {
+    if (isLoading) return;
+    isLoading = true;
+
+    let profilesList = [];
+
+    try {
+        // משיכת נתונים מ-local_history.json דרך ה-Backend
+        let rawData = await callPythonBackend("load_local_history");
+        profilesList = typeof rawData === "string" ? JSON.parse(rawData) : rawData;
+    } catch (err) {
+        console.error("Error fetching profiles:", err);
+    }
+
+    container.innerHTML = "";
+
+    if (profilesList && profilesList.length > 0) {
+        profilesList.forEach((profile) => {
+            let pBox = document.createElement("div");
+            pBox.className = "profile-box";
+
+            // הצגת השם לפי firstname ו-lastname כפי שנדרש
+            let nameText = `${profile.firstName || ''} ${profile.lastName || ''}`.trim() || "Unnamed User";
+            let emailText = profile.exmail || profile.email || "";
+
+            pBox.innerHTML = `
+                <div>${nameText}</div>
+                ${emailText ? `<div class="profile-email">${emailText}</div>` : ''}
+            `;
+
+            pBox.onclick = async function() {
+                document.getElementById("debugBox").style.display = "none";
+                pBox.style.opacity = "0.5";
+                pBox.style.pointerEvents = "none";
+
+                let response;
+                try {
+                    // === תיקון ===
+                    // שולחים רק את ה-id! הפייתון כבר מכיר את הפרופיל המלא
+                    // דרך local_history.json - אין סיבה להעביר את כל השדות
+                    // דרך ה-document.title bridge. זה:
+                    //   1. מונע את שגיאת ה-"Bridge timeout" (payload קטן)
+                    //   2. מונע דריסה של שדות בפרופיל המקומי
+                    //   3. חוסך חשיפת סיסמה/מידע רגיש ב-JS
+                    response = await callPythonBackend("set_logged_in_user", [{ id: profile.id }]);
+                } catch (e) {
+                    showDebug("Bridge error: " + (e && e.message ? e.message : JSON.stringify(e)));
+                    pBox.style.opacity = "1";
+                    pBox.style.pointerEvents = "auto";
+                    return;
+                }
+
+                // אם ה-bridge לא החזיר בכלל תשובה (timeout/תקוע)
+                if (response === undefined || response === null) {
+                    showDebug("No response received from backend at all (bridge may be stuck).");
+                    pBox.style.opacity = "1";
+                    pBox.style.pointerEvents = "auto";
+                    return;
+                }
+
+                let parsed = typeof response === "string" ? JSON.parse(response) : response;
+
+                if (!parsed.success) {
+                    showDebug("Backend returned failure:\n" + JSON.stringify(parsed, null, 2));
+                    pBox.style.opacity = "1";
+                    pBox.style.pointerEvents = "auto";
+                    return;
+                }
+
+                // הצלחה - נווט מיד, בלי דיליי מלאכותי
+                let currentPath = window.location.pathname;
+                let dirPath = currentPath.substring(0, currentPath.lastIndexOf('/') + 1);
+                window.location.href = dirPath + 'home.html';
+            };
+            container.appendChild(pBox);
+        });
+    } else {
+        let msg = document.createElement("div");
+        msg.className = "message";
+        msg.textContent = "No profiles found on device.";
+        container.appendChild(msg);
+    }
+
+    isLoading = false;
+}
+
+document.getElementById("loginRedirectBtn").onclick = function() {
+    window.location.href = "login.html";
+};
+
+window.onload = function () {
+    setTimeout(loadProfiles, 300);
+};
+</script>
+
+</body>
+</html>
